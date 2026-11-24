@@ -1,0 +1,58 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（不带 v），例如 3.0.2'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 构建 + 校验
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            node scripts/build.mjs --version "${{ inputs.version }}"
+          else
+            node scripts/build.mjs
+          fi
+
+      - name: 发布到 dist 分支
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: dist
+          publish_dir: ./dist
+          force_orphan: true
+          commit_message: 'build: ${{ github.ref_name }}'
+          user_name: 'github-actions[bot]'
+          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: 归档到 Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.user.js
+          body: |
+            安装地址（Tampermonkey 会从这里检查更新）：
+
+            ```
+            https://raw.githubusercontent.com/${{ github.repository }}/dist/zhihu-old-reader.user.js
+            ```

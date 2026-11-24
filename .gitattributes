@@ -1,0 +1,4 @@
+# 统一 LF：脚本会被字节推上 dist，CRLF 曾让元数据解析出错
+* text=auto eol=lf
+*.user.js text eol=lf
+*.js   text eol=lf
